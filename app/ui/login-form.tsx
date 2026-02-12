@@ -10,8 +10,31 @@ import { ArrowRightIcon } from '@heroicons/react/20/solid';
 import { Button } from './button';
 import { useFormState, useFormStatus } from 'react-dom';
 import { authenticate } from '@/app/lib/actions';
+import { useEffect, useState } from 'react';
 
 export default function LoginForm() {
+  const [parentMessage, setParentMessage] = useState('');
+  // Replace with the actual URL of your deployed parent Next.js app
+  const parentAppUrl = process.env.NEXT_PUBLIC_PARENT_APP_URL; 
+  // Effect to listen for messages from the parent window
+  useEffect(() => {
+    const handleMessage = (event: any) => {
+      // Security check: Ensure the message is from the expected origin
+      if (event.origin !== parentAppUrl) {
+        console.log('Message from untrusted origin:', event.origin);
+        return;
+      }
+      setParentMessage(event.data);
+      console.log('Child received message from parent:', event.data);
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [parentAppUrl]);
+
   const [code, action] = useFormState(authenticate, undefined);
   return (
     <form action={action} className="space-y-3">
@@ -72,6 +95,7 @@ export default function LoginForm() {
           )}
         </div>
       </div>
+      {(parentMessage.length > 0) && <p style={{width: '800px'}}>Received from Parent: {parentMessage}</p>}
     </form>
   );
 }
